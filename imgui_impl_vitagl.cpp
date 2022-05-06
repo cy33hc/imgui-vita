@@ -13,6 +13,13 @@
 
 #define VERTEX_BUFFER_SIZE 0x100000
 
+#define ANALOG_CENTER 128
+#define ANALOG_THRESHOLD 64
+#define BUTTON_LEFT 0x00000010
+#define BUTTON_RIGHT 0x00000020
+#define BUTTON_UP 0x00000040
+#define BUTTON_DOWN 0x00000080
+
 // Data
 static uint64_t	   g_Time = 0;
 static bool		 g_MousePressed[3] = { false, false, false };
@@ -34,6 +41,12 @@ static bool touch_usage = false;
 static bool mousestick_usage = true;
 static bool gamepad_usage = false;
 static bool shaders_usage = false;
+static uint32_t previous_down = 0;
+static int repeat_count = 0;
+static int repeat_delay = 50000;
+static uint64_t previous_time = 0;
+static uint32_t disabled_buttons = 0;
+
 
 #ifdef ENABLE_IMGUI_LOG
 void LOG(const char *format, ...) {
@@ -418,22 +431,71 @@ void ImGui_ImplVitaGL_NewFrame()
 		SceCtrlData pad;
 		int lstick_x, lstick_y = 0;
 		ImGui_ImplVitaGL_PollLeftStick(&pad, &lstick_x, &lstick_y);
-		io.NavInputs[ImGuiNavInput_Activate]  = (pad.buttons & SCE_CTRL_CROSS)    ? 1.0f : 0.0f;
-		io.NavInputs[ImGuiNavInput_Cancel]    = (pad.buttons & SCE_CTRL_CIRCLE)   ? 1.0f : 0.0f;
-		io.NavInputs[ImGuiNavInput_Input]     = (pad.buttons & SCE_CTRL_TRIANGLE) ? 1.0f : 0.0f;
-		io.NavInputs[ImGuiNavInput_Menu]      = (pad.buttons & SCE_CTRL_SQUARE)   ? 1.0f : 0.0f;
-		io.NavInputs[ImGuiNavInput_DpadLeft]  = (pad.buttons & SCE_CTRL_LEFT)     ? 1.0f : 0.0f;
-		io.NavInputs[ImGuiNavInput_DpadRight] = (pad.buttons & SCE_CTRL_RIGHT)    ? 1.0f : 0.0f;
-		io.NavInputs[ImGuiNavInput_DpadUp]    = (pad.buttons & SCE_CTRL_UP)       ? 1.0f : 0.0f;
-		io.NavInputs[ImGuiNavInput_DpadDown]  = (pad.buttons & SCE_CTRL_DOWN)     ? 1.0f : 0.0f;
+		if (!(disabled_buttons & SCE_CTRL_CROSS))
+				io.NavInputs[ImGuiNavInput_Activate] = (pad.buttons & SCE_CTRL_CROSS) ? 1.0f : 0.0f;
+		if (!(disabled_buttons & SCE_CTRL_CIRCLE))
+				io.NavInputs[ImGuiNavInput_Cancel] = (pad.buttons & SCE_CTRL_CIRCLE) ? 1.0f : 0.0f;
+		if (!(disabled_buttons & SCE_CTRL_TRIANGLE))
+				io.NavInputs[ImGuiNavInput_Input] = (pad.buttons & SCE_CTRL_TRIANGLE) ? 1.0f : 0.0f;
+		if (!(disabled_buttons & SCE_CTRL_SQUARE))
+				io.NavInputs[ImGuiNavInput_Menu] = (pad.buttons & SCE_CTRL_SQUARE) ? 1.0f : 0.0f;
+		if (!(disabled_buttons & SCE_CTRL_LEFT))
+				io.NavInputs[ImGuiNavInput_DpadLeft] = (pad.buttons & SCE_CTRL_LEFT) ? 1.0f : 0.0f;
+		if (!(disabled_buttons & SCE_CTRL_RIGHT))
+				io.NavInputs[ImGuiNavInput_DpadRight] = (pad.buttons & SCE_CTRL_RIGHT) ? 1.0f : 0.0f;
+		if (!(disabled_buttons & SCE_CTRL_UP))
+				io.NavInputs[ImGuiNavInput_DpadUp] = (pad.buttons & SCE_CTRL_UP) ? 1.0f : 0.0f;
+		if (!(disabled_buttons & SCE_CTRL_DOWN))
+				io.NavInputs[ImGuiNavInput_DpadDown] = (pad.buttons & SCE_CTRL_DOWN) ? 1.0f : 0.0f;
 
-		if (!mousestick_usage || io.NavInputs[ImGuiNavInput_Menu] == 1.0f) {
+		if (io.NavInputs[ImGuiNavInput_Menu] == 1.0f) {
 			io.NavInputs[ImGuiNavInput_FocusPrev] = (pad.buttons & SCE_CTRL_LTRIGGER) ? 1.0f : 0.0f;
 			io.NavInputs[ImGuiNavInput_FocusNext] = (pad.buttons & SCE_CTRL_RTRIGGER) ? 1.0f : 0.0f;
 			if (lstick_x < 0) io.NavInputs[ImGuiNavInput_LStickLeft] = (float)(-lstick_x/16);
 			if (lstick_x > 0) io.NavInputs[ImGuiNavInput_LStickRight] = (float)(lstick_x/16);
 			if (lstick_y < 0) io.NavInputs[ImGuiNavInput_LStickUp] = (float)(-lstick_y/16);
 			if (lstick_y > 0) io.NavInputs[ImGuiNavInput_LStickDown] = (float)(lstick_y/16);
+		}
+		else if (!mousestick_usage)
+		{
+			uint32_t down = 0;
+			if (pad.lx < ANALOG_CENTER - ANALOG_THRESHOLD)
+					down |= BUTTON_LEFT;
+			if (pad.lx > ANALOG_CENTER + ANALOG_THRESHOLD)
+					down |= BUTTON_RIGHT;
+			if (pad.ly < ANALOG_CENTER - ANALOG_THRESHOLD)
+					down |= BUTTON_UP;
+			if (pad.ly > ANALOG_CENTER + ANALOG_THRESHOLD)
+					down |= BUTTON_DOWN;
+
+			uint32_t pressed = down & ~previous_down;
+			if (previous_down == down)
+			{
+					uint64_t delay = 300000;
+					if (repeat_count > 0)
+							delay = repeat_delay;
+					if (current_time - previous_time > delay)
+					{
+							pressed = down;
+							previous_time = current_time;
+							repeat_count++;
+					}
+			}
+			else
+			{
+					previous_time = current_time;
+					repeat_count = 0;
+			}
+			
+			if (pressed & BUTTON_LEFT)
+					io.NavInputs[ImGuiNavInput_DpadLeft] = 1.0f;
+			if (pressed & BUTTON_RIGHT)
+					io.NavInputs[ImGuiNavInput_DpadRight] = 1.0f;
+			if (pressed & BUTTON_UP)
+					io.NavInputs[ImGuiNavInput_DpadUp] = 1.0f;
+			if (pressed & BUTTON_DOWN)
+					io.NavInputs[ImGuiNavInput_DpadDown] = 1.0f;
+			previous_down = down;
 		}
 	}
 	
@@ -489,4 +551,14 @@ void ImGui_ImplVitaGL_GamepadUsage(bool val){
 
 void ImGui_ImplVitaGL_UseCustomShader(bool val){
 	shaders_usage = val;
+}
+
+void ImGui_ImplVita2D_DisableButtons(uint32_t buttons)
+{
+        disabled_buttons = buttons;
+}
+
+void ImGui_ImplVita2D_SetAnalogRepeatDelay(int delay)
+{
+        repeat_delay = delay;
 }
