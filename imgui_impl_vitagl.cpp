@@ -553,12 +553,12 @@ void ImGui_ImplVitaGL_UseCustomShader(bool val){
 	shaders_usage = val;
 }
 
-void ImGui_ImplVita2D_DisableButtons(uint32_t buttons)
+void ImGui_ImplVitaGL_DisableButtons(uint32_t buttons)
 {
         disabled_buttons = buttons;
 }
 
-void ImGui_ImplVita2D_SetAnalogRepeatDelay(int delay)
+void ImGui_ImplVitaGL_SetAnalogRepeatDelay(int delay)
 {
         repeat_delay = delay;
 }

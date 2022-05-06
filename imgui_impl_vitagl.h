@@ -22,5 +22,5 @@ void ImGui_ImplVitaGL_MouseStickUsage(bool val); // Left mouse stick and trigger
 // GamepadUsage uses the Vita buttons to navigate and interact with UI elements
 void ImGui_ImplVitaGL_GamepadUsage(bool val);
 void ImGui_ImplVitaGL_UseCustomShader(bool val);
-void ImGui_ImplVita2D_DisableButtons(unsigned int buttons);
-void ImGui_ImplVita2D_SetAnalogRepeatDelay(int delay);
+void ImGui_ImplVitaGL_DisableButtons(unsigned int buttons);
+void ImGui_ImplVitaGL_SetAnalogRepeatDelay(int delay);
