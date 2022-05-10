@@ -41,6 +41,7 @@ static bool touch_usage = false;
 static bool mousestick_usage = true;
 static bool gamepad_usage = false;
 static bool shaders_usage = false;
+static bool swap_xo = false;
 static uint32_t previous_down = 0;
 static int repeat_count = 0;
 static int repeat_delay = 50000;
@@ -431,10 +432,14 @@ void ImGui_ImplVitaGL_NewFrame()
 		SceCtrlData pad;
 		int lstick_x, lstick_y = 0;
 		ImGui_ImplVitaGL_PollLeftStick(&pad, &lstick_x, &lstick_y);
-		if (!(disabled_buttons & SCE_CTRL_CROSS))
+		if (!(disabled_buttons & SCE_CTRL_CROSS) && !swap_xo)
 				io.NavInputs[ImGuiNavInput_Activate] = (pad.buttons & SCE_CTRL_CROSS) ? 1.0f : 0.0f;
-		if (!(disabled_buttons & SCE_CTRL_CIRCLE))
+		if (!(disabled_buttons & SCE_CTRL_CIRCLE) && swap_xo)
+				io.NavInputs[ImGuiNavInput_Activate] = (pad.buttons & SCE_CTRL_CIRCLE) ? 1.0f : 0.0f;
+		if (!(disabled_buttons & SCE_CTRL_CIRCLE) && !swap_xo)
 				io.NavInputs[ImGuiNavInput_Cancel] = (pad.buttons & SCE_CTRL_CIRCLE) ? 1.0f : 0.0f;
+		if (!(disabled_buttons & SCE_CTRL_CROSS) && swap_xo)
+				io.NavInputs[ImGuiNavInput_Cancel] = (pad.buttons & SCE_CTRL_CROSS) ? 1.0f : 0.0f;
 		if (!(disabled_buttons & SCE_CTRL_TRIANGLE))
 				io.NavInputs[ImGuiNavInput_Input] = (pad.buttons & SCE_CTRL_TRIANGLE) ? 1.0f : 0.0f;
 		if (!(disabled_buttons & SCE_CTRL_SQUARE))
@@ -561,4 +566,9 @@ void ImGui_ImplVitaGL_DisableButtons(uint32_t buttons)
 void ImGui_ImplVitaGL_SetAnalogRepeatDelay(int delay)
 {
         repeat_delay = delay;
+}
+
+void ImGui_ImplVita2D_SwapXO(bool val)
+{
+	swap_xo = val;
 }

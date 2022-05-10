@@ -24,3 +24,4 @@ void ImGui_ImplVitaGL_GamepadUsage(bool val);
 void ImGui_ImplVitaGL_UseCustomShader(bool val);
 void ImGui_ImplVitaGL_DisableButtons(unsigned int buttons);
 void ImGui_ImplVitaGL_SetAnalogRepeatDelay(int delay);
+void ImGui_ImplVitaGL_SwapXO(bool val);
