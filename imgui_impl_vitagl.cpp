@@ -568,7 +568,7 @@ void ImGui_ImplVitaGL_SetAnalogRepeatDelay(int delay)
         repeat_delay = delay;
 }
 
-void ImGui_ImplVita2D_SwapXO(bool val)
+void ImGui_ImplVitaGL_SwapXO(bool val)
 {
 	swap_xo = val;
 }
