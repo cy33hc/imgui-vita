@@ -263,20 +263,14 @@ bool ImGui_ImplVitaGL_CreateDeviceObjects()
 	io.Fonts->GetTexDataAsRGBA32(&pixels, &width, &height);
 
 	// Upload texture to graphics system
-	GLint last_texture;
-	glGetIntegerv(GL_TEXTURE_BINDING_2D, &last_texture);
-	glGenTextures(1, &g_FontTexture);
-	glBindTexture(GL_TEXTURE_2D, g_FontTexture);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-	//glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+	glGenTextures(1, &g_FontTexture);
+	glBindTexture(GL_TEXTURE_2D, g_FontTexture);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
 
 	// Store our identifier
 	io.Fonts->TexID = (void *)(intptr_t)g_FontTexture;
-
-	// Restore state
-	glBindTexture(GL_TEXTURE_2D, last_texture);
 
 	return true;
 }
